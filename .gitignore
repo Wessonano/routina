@@ -1,5 +1,7 @@
 node_modules/
 routina.db
+routina.db-shm
+routina.db-wal
 .env
 frontend/dist/
 google-token.json

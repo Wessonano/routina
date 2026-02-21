@@ -2,3 +2,4 @@ node_modules/
 routina.db
 .env
 frontend/dist/
+google-token.json

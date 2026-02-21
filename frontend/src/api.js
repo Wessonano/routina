@@ -31,4 +31,9 @@ export const api = {
   calendarAuthUrl: () => request('/calendar/auth'),
   calendarEvents: (date) => request(`/calendar/events?date=${date}`),
   calendarSync: (date) => request('/calendar/sync', { method: 'POST', body: { date } }),
+
+  // Comments
+  getComments: (date) => request(`/comments?date=${date}`),
+  postComment: (data) => request('/comments', { method: 'POST', body: data }),
+  commentsUnread: (date) => request(`/comments/unread?date=${date}`),
 };

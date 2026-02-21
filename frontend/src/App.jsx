@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useTasks } from './hooks/useTasks';
 import { usePomodoro } from './hooks/usePomodoro';
 import { useCalendar } from './hooks/useCalendar';
+import { useComments } from './hooks/useComments';
 import DayNav from './components/DayNav';
 import Timeline from './components/Timeline';
 import Pomodoro from './components/Pomodoro';
 import TaskForm from './components/TaskForm';
 import StatsBar from './components/StatsBar';
+import Comments from './components/Comments';
 
 function todayStr() {
   const d = new Date();
@@ -16,11 +18,13 @@ function todayStr() {
 export default function App() {
   const [date, setDate] = useState(todayStr());
   const [showForm, setShowForm] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
   const { tasks, loading, refresh, createTask, updateTask, deleteTask } = useTasks(date);
   const pomodoro = usePomodoro();
   const calendar = useCalendar(date);
+  const { comments, unread, refresh: refreshComments, reply } = useComments(date);
 
   // Check for ?gcal=connected after OAuth redirect
   useEffect(() => {
@@ -64,6 +68,15 @@ export default function App() {
                   </button>
                 )
               )}
+              <button onClick={() => setShowComments(true)}
+                      className="relative text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full font-medium cursor-pointer">
+                Messages
+                {unread > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+                    {unread}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
           <DayNav date={date} onChange={setDate} />
@@ -120,6 +133,17 @@ export default function App() {
             setShowForm(false);
             setEditingTask(null);
           }}
+        />
+      )}
+
+      {showComments && (
+        <Comments
+          comments={comments}
+          onReply={async (msg, replyTo) => {
+            await reply(msg, replyTo);
+            refreshComments();
+          }}
+          onClose={() => setShowComments(false)}
         />
       )}
     </div>

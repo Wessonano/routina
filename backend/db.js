@@ -38,9 +38,20 @@ db.exec(`
     value TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    author TEXT NOT NULL,
+    phone TEXT,
+    message TEXT NOT NULL,
+    replied_to INTEGER,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_tasks_date ON tasks(date);
   CREATE INDEX IF NOT EXISTS idx_tasks_date_sort ON tasks(date, sort_order);
   CREATE INDEX IF NOT EXISTS idx_pomodoro_task ON pomodoro_sessions(task_id);
+  CREATE INDEX IF NOT EXISTS idx_comments_date ON comments(date);
 `);
 
 const settingsCount = db.prepare('SELECT COUNT(*) as c FROM settings').get();

@@ -14,6 +14,7 @@ app.use(express.json());
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/pomodoro', require('./routes/pomodoro'));
 app.use('/api/calendar', require('./routes/calendar'));
+app.use('/api/comments', require('./routes/comments'));
 
 // Stats endpoint
 app.get('/api/stats', (req, res) => {
@@ -63,6 +64,21 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(frontendDist, 'index.html'));
   });
 }
+
+// Start cron jobs
+const { startCron } = require('./cron');
+startCron();
+
+// Manual trigger for daily summary (for testing)
+app.post('/api/summary/send', async (req, res) => {
+  const { sendDailySummary } = require('./cron');
+  try {
+    await sendDailySummary();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Routina API running on http://localhost:${PORT}`);

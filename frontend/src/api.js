@@ -25,4 +25,10 @@ export const api = {
   skipTask: (taskId) => request(`/pomodoro/skip/${taskId}`, { method: 'POST' }),
 
   getStats: (period = 'week') => request(`/stats?period=${period}`),
+
+  // Google Calendar
+  calendarStatus: () => request('/calendar/status'),
+  calendarAuthUrl: () => request('/calendar/auth'),
+  calendarEvents: (date) => request(`/calendar/events?date=${date}`),
+  calendarSync: (date) => request('/calendar/sync', { method: 'POST', body: { date } }),
 };

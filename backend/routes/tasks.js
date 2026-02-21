@@ -1,6 +1,17 @@
 const { Router } = require('express');
 const db = require('../db');
+const gcal = require('../google-calendar');
 const router = Router();
+
+// Background sync to Google Calendar (non-blocking)
+function syncToGoogleBackground(task) {
+  if (!gcal.isAuthenticated() || !task.start_time) return;
+  gcal.syncTaskToGoogle(task).then((eventId) => {
+    if (eventId && eventId !== task.google_event_id) {
+      db.prepare('UPDATE tasks SET google_event_id = ? WHERE id = ?').run(eventId, task.id);
+    }
+  }).catch((err) => console.error('Google sync error:', err.message));
+}
 
 // PUT /api/tasks/reorder — MUST be before /:id
 router.put('/reorder', (req, res) => {
@@ -55,6 +66,7 @@ router.post('/', (req, res) => {
   );
 
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
+  syncToGoogleBackground(task);
   res.status(201).json(task);
 });
 
@@ -86,13 +98,23 @@ router.put('/:id', (req, res) => {
   db.prepare(`UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+  syncToGoogleBackground(task);
   res.json(task);
 });
 
 // DELETE /api/tasks/:id
 router.delete('/:id', (req, res) => {
-  const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: 'task not found' });
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+  if (!task) return res.status(404).json({ error: 'task not found' });
+
+  // Delete Google Calendar event if exists
+  if (task.google_event_id) {
+    gcal.deleteGoogleEvent(task.google_event_id).catch((err) =>
+      console.error('Google delete error:', err.message)
+    );
+  }
+
+  db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 

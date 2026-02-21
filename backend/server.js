@@ -13,6 +13,7 @@ app.use(express.json());
 // API routes
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/pomodoro', require('./routes/pomodoro'));
+app.use('/api/calendar', require('./routes/calendar'));
 
 // Stats endpoint
 app.get('/api/stats', (req, res) => {

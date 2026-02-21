@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTasks } from './hooks/useTasks';
 import { usePomodoro } from './hooks/usePomodoro';
+import { useCalendar } from './hooks/useCalendar';
 import DayNav from './components/DayNav';
 import Timeline from './components/Timeline';
 import Pomodoro from './components/Pomodoro';
@@ -18,6 +19,16 @@ export default function App() {
 
   const { tasks, loading, refresh, createTask, updateTask, deleteTask } = useTasks(date);
   const pomodoro = usePomodoro();
+  const calendar = useCalendar(date);
+
+  // Check for ?gcal=connected after OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('gcal') === 'connected') {
+      window.history.replaceState({}, '', '/');
+      calendar.refresh();
+    }
+  }, []);
 
   const requestNotifications = () => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -35,7 +46,25 @@ export default function App() {
     <div className="min-h-screen bg-gray-50" onClick={requestNotifications}>
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-lg mx-auto px-4 py-3">
-          <h1 className="text-xl font-bold text-gray-900">Routina</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-gray-900">Routina</h1>
+            <div className="flex items-center gap-2">
+              {calendar.connected ? (
+                <button onClick={calendar.sync}
+                        className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium cursor-pointer"
+                        title="Synchroniser avec Google Calendar">
+                  Sync
+                </button>
+              ) : (
+                !calendar.loading && (
+                  <button onClick={calendar.connect}
+                          className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full font-medium cursor-pointer">
+                    Google Cal
+                  </button>
+                )
+              )}
+            </div>
+          </div>
           <DayNav date={date} onChange={setDate} />
         </div>
       </header>
@@ -54,6 +83,7 @@ export default function App() {
         <Timeline
           tasks={tasks}
           loading={loading}
+          calendarEvents={calendar.events}
           onStartPomodoro={handleStartPomodoro}
           onUpdateTask={updateTask}
           onDeleteTask={deleteTask}

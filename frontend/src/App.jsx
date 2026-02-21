@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from './api';
 import { useTasks } from './hooks/useTasks';
 import { usePomodoro } from './hooks/usePomodoro';
 import { useCalendar } from './hooks/useCalendar';
@@ -102,6 +103,10 @@ export default function App() {
           onUpdateTask={updateTask}
           onDeleteTask={deleteTask}
           onEdit={(task) => { setEditingTask(task); setShowForm(true); }}
+          onReorder={async (order) => {
+            await api.reorderTasks(date, order);
+            refresh();
+          }}
         />
       </main>
 

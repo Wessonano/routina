@@ -1,7 +1,13 @@
+import { useState, useRef } from 'react';
 import TaskCard from './TaskCard';
 import CalendarEvent from './CalendarEvent';
 
-export default function Timeline({ tasks, loading, calendarEvents = [], onStartPomodoro, onUpdateTask, onDeleteTask, onEdit }) {
+export default function Timeline({ tasks, loading, calendarEvents = [], onStartPomodoro, onUpdateTask, onDeleteTask, onEdit, onReorder }) {
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+  const touchStartY = useRef(null);
+  const touchTaskId = useRef(null);
+
   if (loading) {
     return <div className="text-center py-8 text-gray-400">Chargement...</div>;
   }
@@ -9,7 +15,6 @@ export default function Timeline({ tasks, loading, calendarEvents = [], onStartP
   const scheduled = tasks.filter((t) => t.start_time);
   const unscheduled = tasks.filter((t) => !t.start_time);
 
-  // Merge scheduled tasks and calendar events, sorted by time
   const timelineItems = [
     ...scheduled.map((t) => ({ type: 'task', time: t.start_time, data: t })),
     ...calendarEvents
@@ -25,9 +30,27 @@ export default function Timeline({ tasks, loading, calendarEvents = [], onStartP
 
   const allDayEvents = calendarEvents.filter((e) => e.allDay);
 
+  // Drag handlers for unscheduled tasks reorder
+  const handleDragStart = (taskId) => setDragId(taskId);
+  const handleDragOver = (e, taskId) => { e.preventDefault(); setDragOverId(taskId); };
+  const handleDrop = (targetId) => {
+    if (dragId && dragId !== targetId && onReorder) {
+      const ids = tasks.map((t) => t.id);
+      const fromIdx = ids.indexOf(dragId);
+      const toIdx = ids.indexOf(targetId);
+      if (fromIdx !== -1 && toIdx !== -1) {
+        ids.splice(fromIdx, 1);
+        ids.splice(toIdx, 0, dragId);
+        onReorder(ids);
+      }
+    }
+    setDragId(null);
+    setDragOverId(null);
+  };
+  const handleDragEnd = () => { setDragId(null); setDragOverId(null); };
+
   return (
     <div className="space-y-2">
-      {/* All-day Google Calendar events */}
       {allDayEvents.length > 0 && (
         <div className="space-y-1 mb-3">
           {allDayEvents.map((event) => (
@@ -36,7 +59,6 @@ export default function Timeline({ tasks, loading, calendarEvents = [], onStartP
         </div>
       )}
 
-      {/* Timeline with merged tasks + events */}
       {timelineItems.length > 0 && (
         <div className="relative">
           <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
@@ -57,14 +79,18 @@ export default function Timeline({ tasks, loading, calendarEvents = [], onStartP
         </div>
       )}
 
-      {/* Unscheduled tasks */}
       {unscheduled.length > 0 && (
         <div>
           {(timelineItems.length > 0 || allDayEvents.length > 0) && (
             <h3 className="text-xs font-semibold text-gray-400 uppercase mt-4 mb-2">Sans horaire</h3>
           )}
           {unscheduled.map((task) => (
-            <div key={task.id} className="py-1">
+            <div key={task.id} className={`py-1 transition-opacity ${dragOverId === task.id ? 'opacity-50' : ''}`}
+                 draggable
+                 onDragStart={() => handleDragStart(task.id)}
+                 onDragOver={(e) => handleDragOver(e, task.id)}
+                 onDrop={() => handleDrop(task.id)}
+                 onDragEnd={handleDragEnd}>
               <TaskCard task={task} onStart={onStartPomodoro} onUpdate={onUpdateTask}
                         onDelete={onDeleteTask} onEdit={onEdit} />
             </div>

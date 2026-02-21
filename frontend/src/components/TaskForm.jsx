@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { CATEGORIES } from '../categories';
 
+const RECURRING_OPTIONS = [
+  { value: '', label: 'Jamais' },
+  { value: 'daily', label: 'Tous les jours' },
+  { value: 'weekdays', label: 'Lun-Ven' },
+  { value: 'weekly', label: 'Chaque semaine' },
+];
+
 export default function TaskForm({ task, date, onSave, onClose, onDelete }) {
   const [title, setTitle] = useState(task?.title || '');
   const [category, setCategory] = useState(task?.category || 'autre');
   const [startTime, setStartTime] = useState(task?.start_time || '');
   const [duration, setDuration] = useState(task?.duration_min || 30);
+  const [recurring, setRecurring] = useState(task?.recurring || '');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -15,6 +23,7 @@ export default function TaskForm({ task, date, onSave, onClose, onDelete }) {
       category,
       start_time: startTime || null,
       duration_min: parseInt(duration),
+      recurring: recurring || null,
     });
   };
 
@@ -36,7 +45,7 @@ export default function TaskForm({ task, date, onSave, onClose, onDelete }) {
         <div className="flex flex-wrap gap-2">
           {Object.entries(CATEGORIES).map(([key, cat]) => (
             <button key={key} type="button" onClick={() => setCategory(key)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer
                       ${category === key ? `${cat.bg} text-white border-transparent` : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
               {cat.label}
             </button>
@@ -60,14 +69,27 @@ export default function TaskForm({ task, date, onSave, onClose, onDelete }) {
           </div>
         </div>
 
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Recurrence</label>
+          <div className="flex gap-2">
+            {RECURRING_OPTIONS.map((opt) => (
+              <button key={opt.value} type="button" onClick={() => setRecurring(opt.value)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer
+                        ${recurring === opt.value ? 'bg-blue-600 text-white border-transparent' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex gap-2">
           <button type="submit"
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium active:bg-blue-700 transition-colors">
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium active:bg-blue-700 transition-colors cursor-pointer">
             {task ? 'Enregistrer' : 'Ajouter'}
           </button>
           {task && onDelete && (
             <button type="button" onClick={() => onDelete(task.id)}
-                    className="px-4 py-3 bg-red-100 text-red-700 rounded-lg font-medium">
+                    className="px-4 py-3 bg-red-100 text-red-700 rounded-lg font-medium cursor-pointer">
               Suppr.
             </button>
           )}

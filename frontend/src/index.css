@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dev: #3B82F6;
+  --color-sante: #10B981;
+  --color-menage: #F59E0B;
+  --color-admin: #8B5CF6;
+  --color-loisir: #EC4899;
+  --color-tech: #06B6D4;
+  --color-autre: #6B7280;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+body { overscroll-behavior-y: contain; margin: 0; }

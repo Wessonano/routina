@@ -1,0 +1,22 @@
+{
+  "name": "routina",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Time-blocking PWA with Pomodoro timer",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "node --watch backend/server.js",
+    "dev:frontend": "cd frontend && npx vite --host",
+    "build": "cd frontend && npx vite build",
+    "start": "NODE_ENV=production node backend/server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -46,9 +46,7 @@ function generateSummary(date, contactKey) {
   if (done.length > 0) {
     msg += `Terminées (${done.length}) :\n`;
     for (const t of done) {
-      msg += `- ${t.title} (${t.category})`;
-      if (t.pomodoros_done > 0) msg += ` — ${t.pomodoros_done} pomodoro${t.pomodoros_done > 1 ? 's' : ''}`;
-      msg += '\n';
+      msg += `- ${t.title} (${t.category})\n`;
     }
     msg += '\n';
   }

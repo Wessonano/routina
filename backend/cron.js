@@ -4,9 +4,14 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const db = require('./db');
 const { sendMessage, isBridgeReady, archiveSummary } = require('./whatsapp');
 
-const WA_ERICK = process.env.WA_ERICK;
-const WA_ELISA = process.env.WA_ELISA;
-const WA_MARTINE = process.env.WA_MARTINE;
+const APP_URL = process.env.APP_URL || 'http://localhost:3002';
+
+const RECIPIENTS = [
+  { key: 'arnaud', phone: process.env.WA_ARNAUD, label: null },
+  { key: 'erick', phone: process.env.WA_ERICK, label: 'Papa' },
+  { key: 'elisa', phone: process.env.WA_ELISA, label: 'Elisa' },
+  { key: 'martine', phone: process.env.WA_MARTINE, label: 'Maman' },
+];
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
@@ -18,7 +23,12 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function generateSummary(date) {
+function progressBar(pct) {
+  const filled = Math.round(pct / 10);
+  return '█'.repeat(filled) + '░'.repeat(10 - filled) + ` ${pct}%`;
+}
+
+function generateSummary(date, contactKey) {
   const tasks = db.prepare('SELECT * FROM tasks WHERE date = ? ORDER BY sort_order ASC').all(date);
 
   if (tasks.length === 0) return null;
@@ -27,10 +37,14 @@ function generateSummary(date) {
   const skipped = tasks.filter((t) => t.status === 'skippee');
   const todo = tasks.filter((t) => t.status === 'a_faire' || t.status === 'en_cours');
 
+  const total = tasks.length;
+  const pct = total > 0 ? Math.round((done.length / total) * 100) : 0;
+
   let msg = `Bilan Routina — Arnaud — ${formatDate(date)}\n\n`;
+  msg += `${progressBar(pct)}\n\n`;
 
   if (done.length > 0) {
-    msg += `Terminees (${done.length}) :\n`;
+    msg += `Terminées (${done.length}) :\n`;
     for (const t of done) {
       msg += `- ${t.title} (${t.category})`;
       if (t.pomodoros_done > 0) msg += ` — ${t.pomodoros_done} pomodoro${t.pomodoros_done > 1 ? 's' : ''}`;
@@ -40,7 +54,7 @@ function generateSummary(date) {
   }
 
   if (skipped.length > 0) {
-    msg += `Skippees (${skipped.length}) :\n`;
+    msg += `Skippées (${skipped.length}) :\n`;
     for (const t of skipped) {
       msg += `- ${t.title} (${t.category})\n`;
     }
@@ -55,19 +69,21 @@ function generateSummary(date) {
     msg += '\n';
   }
 
-  const total = tasks.length;
-  const pct = total > 0 ? Math.round((done.length / total) * 100) : 0;
-  msg += `Score : ${done.length}/${total} (${pct}%)\n\n`;
-  msg += `Commentez ce message pour me donner votre avis !`;
+  msg += `Score : ${done.length}/${total}`;
+
+  if (contactKey) {
+    msg += `\n\nDonnez-moi de la force ! 💪\n👉 ${APP_URL}/chat/${contactKey}`;
+  }
 
   return msg;
 }
 
 async function sendDailySummary() {
   const date = todayStr();
-  const summary = generateSummary(date);
 
-  if (!summary) {
+  // Check if there are tasks at all
+  const testSummary = generateSummary(date, null);
+  if (!testSummary) {
     console.log('[cron] No tasks today, skipping summary');
     return;
   }
@@ -78,19 +94,20 @@ async function sendDailySummary() {
     return;
   }
 
-  const recipients = [WA_ERICK, WA_ELISA, WA_MARTINE].filter(Boolean);
-
-  for (const number of recipients) {
+  for (const { key, phone } of RECIPIENTS) {
+    if (!phone) continue;
+    const contactKey = key === 'arnaud' ? null : key;
+    const summary = generateSummary(date, contactKey);
     try {
-      await sendMessage(number, summary);
-      console.log(`[cron] Summary sent to ${number}`);
+      await sendMessage(phone, summary);
+      console.log(`[cron] Summary sent to ${key} (${phone})`);
     } catch (err) {
-      console.error(`[cron] Failed to send to ${number}:`, err.message);
+      console.error(`[cron] Failed to send to ${key}:`, err.message);
     }
   }
 
-  // Archive to vault
-  archiveSummary(date, summary);
+  // Archive Arnaud's version (no link) to vault
+  archiveSummary(date, generateSummary(date, null));
   console.log(`[cron] Summary archived for ${date}`);
 }
 

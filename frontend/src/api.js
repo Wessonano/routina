@@ -33,9 +33,16 @@ export const api = {
   calendarEvents: (date) => request(`/calendar/events?date=${date}`),
   calendarSync: (date) => request('/calendar/sync', { method: 'POST', body: { date } }),
 
-  // Comments
+  // Comments (legacy)
   getComments: (date) => request(`/comments?date=${date}`),
   postComment: (data) => request('/comments', { method: 'POST', body: data }),
   commentsUnread: (date) => request(`/comments/unread?date=${date}`),
   commentsMarkRead: (date) => request('/comments/read', { method: 'POST', body: { date } }),
+
+  // Conversations
+  getConversation: (contact) => request(`/comments/conversation/${contact}`),
+  postExternalMessage: (contact, message) => request('/comments/external', { method: 'POST', body: { contact, message } }),
+  unreadByContact: (contact) => request(`/comments/unread/${contact}`),
+  markReadByContact: (contact) => request(`/comments/read/${contact}`, { method: 'POST' }),
+  unreadTotal: () => request('/comments/unread-total'),
 };

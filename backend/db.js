@@ -61,6 +61,13 @@ try {
   db.exec("ALTER TABLE comments ADD COLUMN read INTEGER DEFAULT 0");
 }
 
+// Add target_contact column if missing (migration)
+try {
+  db.prepare("SELECT target_contact FROM comments LIMIT 1").get();
+} catch {
+  db.exec("ALTER TABLE comments ADD COLUMN target_contact TEXT");
+}
+
 const settingsCount = db.prepare('SELECT COUNT(*) as c FROM settings').get();
 if (settingsCount.c === 0) {
   const insert = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');

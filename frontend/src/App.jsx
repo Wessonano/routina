@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from './api';
 import { useTasks } from './hooks/useTasks';
 import { usePomodoro } from './hooks/usePomodoro';
 import { useCalendar } from './hooks/useCalendar';
-import { useComments } from './hooks/useComments';
 import DayNav from './components/DayNav';
 import Timeline from './components/Timeline';
 import Pomodoro from './components/Pomodoro';
 import TaskForm from './components/TaskForm';
 import StatsBar from './components/StatsBar';
-import Comments from './components/Comments';
+import MessagingCenter from './components/MessagingCenter';
 import Dashboard from './components/Dashboard';
 
 function todayStr() {
@@ -20,14 +19,27 @@ function todayStr() {
 export default function App() {
   const [date, setDate] = useState(todayStr());
   const [showForm, setShowForm] = useState(false);
-  const [showComments, setShowComments] = useState(false);
+  const [showMessages, setShowMessages] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [unread, setUnread] = useState(0);
 
   const { tasks, loading, refresh, createTask, updateTask, deleteTask } = useTasks(date);
   const pomodoro = usePomodoro();
   const calendar = useCalendar(date);
-  const { comments, unread, refresh: refreshComments, reply, markRead } = useComments(date);
+
+  const fetchUnread = useCallback(async () => {
+    try {
+      const data = await api.unreadTotal();
+      setUnread(data.count);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnread]);
 
   // Check for ?gcal=connected after OAuth redirect
   useEffect(() => {
@@ -75,7 +87,7 @@ export default function App() {
                       className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full font-medium cursor-pointer">
                 Stats
               </button>
-              <button onClick={() => { setShowComments(true); markRead(); }}
+              <button onClick={() => setShowMessages(true)}
                       className="relative text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full font-medium cursor-pointer">
                 Messages
                 {unread > 0 && (
@@ -151,14 +163,9 @@ export default function App() {
         <Dashboard onClose={() => setShowDashboard(false)} />
       )}
 
-      {showComments && (
-        <Comments
-          comments={comments}
-          onReply={async (msg, replyTo) => {
-            await reply(msg, replyTo);
-            refreshComments();
-          }}
-          onClose={() => setShowComments(false)}
+      {showMessages && (
+        <MessagingCenter
+          onClose={() => { setShowMessages(false); fetchUnread(); }}
         />
       )}
     </div>

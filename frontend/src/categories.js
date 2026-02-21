@@ -5,5 +5,6 @@ export const CATEGORIES = {
   admin:   { label: 'Admin',   bg: 'bg-admin',   bgLight: 'bg-purple-50',  text: 'text-purple-700' },
   loisir:  { label: 'Loisir',  bg: 'bg-loisir',  bgLight: 'bg-pink-50',    text: 'text-pink-700' },
   tech:    { label: 'Tech',    bg: 'bg-tech',    bgLight: 'bg-cyan-50',    text: 'text-cyan-700' },
+  famille: { label: 'Famille', bg: 'bg-famille', bgLight: 'bg-orange-50',  text: 'text-orange-700' },
   autre:   { label: 'Autre',   bg: 'bg-autre',   bgLight: 'bg-gray-50',    text: 'text-gray-700' },
 };

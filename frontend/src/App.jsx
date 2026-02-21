@@ -10,6 +10,7 @@ import Pomodoro from './components/Pomodoro';
 import TaskForm from './components/TaskForm';
 import StatsBar from './components/StatsBar';
 import Comments from './components/Comments';
+import Dashboard from './components/Dashboard';
 
 function todayStr() {
   const d = new Date();
@@ -20,12 +21,13 @@ export default function App() {
   const [date, setDate] = useState(todayStr());
   const [showForm, setShowForm] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
   const { tasks, loading, refresh, createTask, updateTask, deleteTask } = useTasks(date);
   const pomodoro = usePomodoro();
   const calendar = useCalendar(date);
-  const { comments, unread, refresh: refreshComments, reply } = useComments(date);
+  const { comments, unread, refresh: refreshComments, reply, markRead } = useComments(date);
 
   // Check for ?gcal=connected after OAuth redirect
   useEffect(() => {
@@ -69,7 +71,11 @@ export default function App() {
                   </button>
                 )
               )}
-              <button onClick={() => setShowComments(true)}
+              <button onClick={() => setShowDashboard(true)}
+                      className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full font-medium cursor-pointer">
+                Stats
+              </button>
+              <button onClick={() => { setShowComments(true); markRead(); }}
                       className="relative text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full font-medium cursor-pointer">
                 Messages
                 {unread > 0 && (
@@ -139,6 +145,10 @@ export default function App() {
             setEditingTask(null);
           }}
         />
+      )}
+
+      {showDashboard && (
+        <Dashboard onClose={() => setShowDashboard(false)} />
       )}
 
       {showComments && (

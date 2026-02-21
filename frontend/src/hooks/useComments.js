@@ -33,5 +33,10 @@ export function useComments(date) {
     return created;
   };
 
-  return { comments, unread, refresh, reply };
+  const markRead = async () => {
+    await api.commentsMarkRead(date);
+    setUnread(0);
+  };
+
+  return { comments, unread, refresh, reply, markRead };
 }

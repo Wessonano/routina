@@ -38,15 +38,23 @@ router.post('/', async (req, res) => {
 
   const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(result.lastInsertRowid);
 
-  // If replying to someone, send via WhatsApp
+  // Send via WhatsApp — to replyTo target, or to last non-arnaud commenter
+  let targetPhone = null;
   if (replyTo) {
     const parent = db.prepare('SELECT * FROM comments WHERE id = ?').get(replyTo);
-    if (parent && parent.phone) {
-      try {
-        await sendMessage(parent.phone, message);
-      } catch (err) {
-        console.error('Failed to send WhatsApp reply:', err.message);
-      }
+    if (parent && parent.phone) targetPhone = parent.phone;
+  }
+  if (!targetPhone) {
+    const lastComment = db.prepare(
+      "SELECT phone FROM comments WHERE date = ? AND author != 'arnaud' AND phone IS NOT NULL ORDER BY created_at DESC LIMIT 1"
+    ).get(commentDate);
+    if (lastComment) targetPhone = lastComment.phone;
+  }
+  if (targetPhone) {
+    try {
+      await sendMessage(targetPhone, message);
+    } catch (err) {
+      console.error('Failed to send WhatsApp reply:', err.message);
     }
   }
 
@@ -77,13 +85,22 @@ router.post('/webhook', (req, res) => {
   res.status(201).json({ stored: true, comment });
 });
 
-// GET /api/comments/unread — count of comments not from arnaud for today
+// GET /api/comments/unread — count of unread comments not from arnaud
 router.get('/unread', (req, res) => {
   const date = req.query.date || todayStr();
   const count = db.prepare(
-    "SELECT COUNT(*) as c FROM comments WHERE date = ? AND author != 'arnaud'"
+    "SELECT COUNT(*) as c FROM comments WHERE date = ? AND author != 'arnaud' AND read = 0"
   ).get(date);
   res.json({ count: count.c });
+});
+
+// POST /api/comments/read — mark all comments as read for a date
+router.post('/read', (req, res) => {
+  const date = req.body.date || todayStr();
+  db.prepare(
+    "UPDATE comments SET read = 1 WHERE date = ? AND author != 'arnaud' AND read = 0"
+  ).run(date);
+  res.json({ success: true });
 });
 
 module.exports = router;

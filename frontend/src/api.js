@@ -25,6 +25,7 @@ export const api = {
   skipTask: (taskId) => request(`/pomodoro/skip/${taskId}`, { method: 'POST' }),
 
   getStats: (period = 'week') => request(`/stats?period=${period}`),
+  getStatsDashboard: () => request('/stats/dashboard'),
 
   // Google Calendar
   calendarStatus: () => request('/calendar/status'),
@@ -36,4 +37,5 @@ export const api = {
   getComments: (date) => request(`/comments?date=${date}`),
   postComment: (data) => request('/comments', { method: 'POST', body: data }),
   commentsUnread: (date) => request(`/comments/unread?date=${date}`),
+  commentsMarkRead: (date) => request('/comments/read', { method: 'POST', body: { date } }),
 };

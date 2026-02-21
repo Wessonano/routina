@@ -51,6 +51,90 @@ app.get('/api/stats', (req, res) => {
   res.json(stats);
 });
 
+// Dashboard stats endpoint
+app.get('/api/stats/dashboard', (req, res) => {
+  // 1. Daily stats for last 7 days
+  const daily = db.prepare(`
+    SELECT date,
+           COUNT(*) as total,
+           SUM(CASE WHEN status = 'terminee' THEN 1 ELSE 0 END) as done,
+           SUM(CASE WHEN status = 'skippee' THEN 1 ELSE 0 END) as skipped
+    FROM tasks
+    WHERE date >= date('now', '-6 days') AND date <= date('now')
+    GROUP BY date
+    ORDER BY date
+  `).all();
+
+  // Fill missing days with zeros
+  const dailyMap = {};
+  for (const row of daily) {
+    dailyMap[row.date] = row;
+  }
+  const dailyFull = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    dailyFull.push(dailyMap[dateStr] || { date: dateStr, total: 0, done: 0, skipped: 0 });
+  }
+
+  // 2. Categories (last 30 days)
+  const categories = db.prepare(`
+    SELECT category,
+           COUNT(*) as total,
+           SUM(CASE WHEN status = 'terminee' THEN 1 ELSE 0 END) as done
+    FROM tasks
+    WHERE date >= date('now', '-30 days')
+    GROUP BY category
+    ORDER BY total DESC
+  `).all();
+
+  // 3. Pomodoros completed (week + month)
+  const pomodoroWeek = db.prepare(`
+    SELECT COUNT(*) as c FROM pomodoro_sessions
+    WHERE completed = 1 AND started_at >= datetime('now', '-7 days')
+  `).get().c;
+
+  const pomodoroMonth = db.prepare(`
+    SELECT COUNT(*) as c FROM pomodoro_sessions
+    WHERE completed = 1 AND started_at >= datetime('now', '-30 days')
+  `).get().c;
+
+  // 4. Streak: consecutive days with at least 1 task done
+  const streakRows = db.prepare(`
+    SELECT date, SUM(CASE WHEN status = 'terminee' THEN 1 ELSE 0 END) as done
+    FROM tasks
+    WHERE date <= date('now')
+    GROUP BY date
+    ORDER BY date DESC
+    LIMIT 60
+  `).all();
+
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i <= 60; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const row = streakRows.find(r => r.date === dateStr);
+    if (row && row.done > 0) {
+      streak++;
+    } else if (i === 0) {
+      // Today can have 0 done (day not over yet), skip it
+      continue;
+    } else {
+      break;
+    }
+  }
+
+  res.json({
+    daily: dailyFull,
+    categories,
+    pomodoros: { week: pomodoroWeek, month: pomodoroMonth },
+    streak,
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
